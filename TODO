@@ -1,0 +1,94 @@
+TODO – Project Work Split
+1. Input/Output + Program Flow (Controller)
+
+Tasks
+
+ Write user prompts
+
+ Handle input for regex and text
+
+ Store input strings in buffers
+
+ Call parser and matcher functions in correct order
+
+ Format and print output matches
+
+ Manage commas, spacing, and newlines
+
+ Integrate code from teammates
+
+ Final debugging and flow testing
+
+Deliverables
+
+ main
+
+ get_regex
+
+ get_text
+
+ print_match
+
+2. Regex Parser (Tokenizing & Pattern Understanding)
+
+Tasks
+
+ Scan through the regex input
+
+ Detect symbol types:
+
+ Normal characters
+
+ *
+
+ .
+
+ [ ... ]
+
+ Escaped characters \.
+
+ Negation ^
+
+ Build token list with types:
+
+ TYPE_CHAR
+
+ TYPE_CLASS
+
+ TYPE_STAR
+
+ TYPE_DOT
+
+ TYPE_NEGATED_CLASS
+
+ Return token list to matcher
+
+3. Matching Engine (Execute Regex on Text)
+
+Tasks
+
+ Implement rule-based match routines:
+
+ Single character match
+
+ * repetition handler
+
+ [a-z] class matching
+
+ [^...] negated class
+
+ Dot . match
+
+ Scan through the entire text
+
+ Generate substring matches for output
+
+ Handle edge cases:
+
+ Backtracking
+
+ Overlapping matches
+
+ Boundary conditions
+
+ Export main matcher function (run_match)
