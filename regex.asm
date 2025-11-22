@@ -1,5 +1,5 @@
 # regex.asm
-# CS 35101 – Final Project
+# CS 35101 â€“ Final Project
 # Wil N
 #
 # TODO
@@ -76,7 +76,54 @@ print_match:
 debuggin:
 
 
+ #dot+star TEST CASE 5
+   match_dot_star:
+   
+    li $v0, 4
+    la $a0, text_buffer
+    syscall
+    jr $ra
+    #end of dot+star
+    
+    
+    
+    #range+star TEST CASE 6
+    
+    match_range_star:
+    # range start = regex_buffer[1]
+    lb $t1, 1($a1)
 
+    # range end = regex_buffer[3]
+    lb $t2, 3($a1)
+
+    # Load first text char
+    lb $t0, 0($a0)
+
+mrs_loop:
+    beqz $t0, mrs_done       # branch if end of text
+    blt $t0, $t1, mrs_next   # if char < start of range go to next
+    bgt $t0, $t2, mrs_next   # if char > end of range go to next
+
+    # print character
+    li $v0, 11
+    move $a0, $t0
+    syscall
+
+    # seperator
+    li $v0, 4
+    la $a0, comma_space
+    syscall
+
+# next char in text
+mrs_next:
+    addi $a0, $a0, 1        
+    lb $t0, 0($a0)
+    j mrs_loop
+
+mrs_done:
+    jr $ra
+
+#end of range+star
 
 	
 
