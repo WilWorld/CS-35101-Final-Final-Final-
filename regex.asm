@@ -2,128 +2,142 @@
 # CS 35101 – Final Project
 # Wil N
 #
-# TODO
-#  - I/O handling
-#  - Program flow
-#  - Calling parser + matcher
-#  - Final output formatting
-
 .data
-	regex_prompt:      .asciiz "Enter regular expression: "
-	text_prompt:       .asciiz "Enter text to evaluate: "
-	output_prompt:     .asciiz "Matches:\n"
+    regex_prompt:      .asciiz "Enter regular expression: "
+    text_prompt:       .asciiz "Enter text to evaluate: "
+    output_prompt:     .asciiz "Matches:\n"
 
-	# Buffers
-	regex_buffer:      .space 256
-	text_buffer:       .space 512
+    # Buffers
+    regex_buffer:      .space 256
+    text_buffer:       .space 512
 
-	# Print formatting
-	comma_space:       .asciiz ", "
-	newline:           .asciiz "\n"
-	
+    # Print formatting
+    comma_space:       .asciiz ", "
+    newline:           .asciiz "\n"
+
 .text
 .globl main
-# main (duh)
+
+# main program
 main:
-	j get_regex	# Get regex from user
-	
-# Prompts user and reads the regex string into regex_buffer
+    j get_regex      # get regex from user
+
+# Get regex input
 get_regex:
     li $v0, 4
     la $a0, regex_prompt
     syscall
-    
+
     li $v0, 8
     la $a0, regex_buffer
     li $a1, 256
     syscall
-    
-    j get_text # get evaluation text
-    
-# Prompts user and reads the evaluation text into text_buffer
+
+    j get_text       # get text input
+
+# Get text input
 get_text:
-	li $v0, 4
-	la $a0, text_prompt
-	syscall
-	
-	li $v0, 8
-	la $a0, text_buffer
-	li $a1, 512
-	syscall
-	
-	j print_match # print results
-	
-# Prints all matches stored in match_buffer
+    li $v0, 4
+    la $a0, text_prompt
+    syscall
+
+    li $v0, 8
+    la $a0, text_buffer
+    li $a1, 512
+    syscall
+
+    j print_match    # evaluate and print matches
+
+# Print matches
 print_match:
-	li $v0, 4
-	la $a0, output_prompt
-	syscall
-	
-	# DEBUGGING, checking the buffers
-	li $v0, 4
-	la $a0, text_buffer
-	syscall
-	
-	la $a0, regex_buffer
-	syscall
-	#
-	
-	# Exit program exit
+    li $v0, 4
+    la $a0, output_prompt
+    syscall
+
+    # call regex evaluator
+    la $a0, text_buffer
+    la $a1, regex_buffer
+    jal regex_evaluator
+
+    # print newline at end
+    li $v0, 4
+    la $a0, newline
+    syscall
+
+    # exit
     li $v0, 10
     syscall
-    
-# USING FOR DEBUG STUFF
-debuggin:
 
+# Regex evaluator (dispatcher)
+# a0 = text_buffer, a1 = regex_buffer
+regex_evaluator:
+    lb $t0, 0($a1)        # first char of regex
 
- #dot+star TEST CASE 5
-   match_dot_star:
-   
-    li $v0, 4
-    la $a0, text_buffer
-    syscall
-    jr $ra
-    #end of dot+star
-    
-    
-    
-    #range+star TEST CASE 6
-    
-    match_range_star:
-    # range start = regex_buffer[1]
-    lb $t1, 1($a1)
+    li $t1, 46             # '.' ASCII
+    beq $t0, $t1, match_dot
 
-    # range end = regex_buffer[3]
-    lb $t2, 3($a1)
+    li $t3, 91             # '[' ASCII
+    beq $t0, $t3, match_range
 
-    # Load first text char
+    jr $ra                 # unsupported pattern, return
+
+# DOT or DOT-STAR
+match_dot:
+    lb $t1, 1($a1)         # check next char
+    li $t2, 42              # '*' ASCII
+    beq $t1, $t2, match_dot_star
+
+    # single dot match: print first char only
     lb $t0, 0($a0)
+    beqz $t0, md_done
+    li $v0, 11
+    move $a0, $t0
+    syscall
+    j md_done
 
-mrs_loop:
-    beqz $t0, mrs_done       # branch if end of text
-    blt $t0, $t1, mrs_next   # if char < start of range go to next
-    bgt $t0, $t2, mrs_next   # if char > end of range go to next
-
-    # print character
+match_dot_star:
+    move $s0, $a0           # s0 = pointer to text
+md_loop:
+    lb $t0, 0($s0)
+    beqz $t0, md_done       # end of string
     li $v0, 11
     move $a0, $t0
     syscall
 
-    # seperator
+    # print separator
     li $v0, 4
     la $a0, comma_space
     syscall
 
-# next char in text
-mrs_next:
-    addi $a0, $a0, 1        
-    lb $t0, 0($a0)
-    j mrs_loop
-
-mrs_done:
+    addi $s0, $s0, 1
+    j md_loop
+md_done:
     jr $ra
 
-#end of range+star
+# RANGE-STAR [a-z]*
+match_range:
+    lb $t1, 1($a1)          # range start
+    lb $t2, 3($a1)          # range end
 
-	
+    move $s0, $a0           # s0 = pointer to text
+mr_loop:
+    lb $t0, 0($s0)
+    beqz $t0, mr_done        # end of text
+    blt $t0, $t1, mr_next
+    bgt $t0, $t2, mr_next
 
+    # print char
+    li $v0, 11
+    move $a0, $t0
+    syscall
+
+    # print separator
+    li $v0, 4
+    la $a0, comma_space
+    syscall
+
+mr_next:
+    addi $s0, $s0, 1
+    j mr_loop
+mr_done:
+    jr $ra
