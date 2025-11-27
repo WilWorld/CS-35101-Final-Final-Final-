@@ -141,3 +141,51 @@ mr_next:
     j mr_loop
 mr_done:
     jr $ra
+
+
+
+ # start negated range star (test case 7)
+match_negated_range:
+    lb $t1, 2($a1)        # range start 
+    lb $t2, 4($a1)        # range end
+
+    move $s0, $a0         # pointer into text
+
+mnr_loop:
+    lb $t0, 0($s0)
+    beqz $t0, mnr_done    # end of text
+
+    # If in range, skip 
+    bge $t0, $t1, check_end
+    j print_negated
+check_end:
+    ble $t0, $t2, mnr_skip
+    # else print 
+print_negated:
+
+    # print char
+    li $v0, 11
+    move $a0, $t0
+    syscall
+
+    # print separator
+    li $v0, 4
+    la $a0, comma_space
+    syscall
+
+    j mnr_next
+
+mnr_skip:
+    # do nothing
+mnr_next:
+    addi $s0, $s0, 1
+    j mnr_loop
+
+mnr_done:
+    jr $ra
+    
+    #end negated range star
+
+
+
+
