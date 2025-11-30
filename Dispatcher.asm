@@ -290,28 +290,10 @@ msc_done:
 #TEST CASE 5
 
 match_dot_star:
-    la $s0, text_buffer     
-
-mds_loop:
-    lb $t0, 0($s0)
-    beqz $t0, mds_done       # end 
-
-    li $t1, '\n'             # ignore newline 
-    beq $t0, $t1, mds_skip
-
-    move $a0, $t0            # print
-    li $v0, 11
+    li $v0, 4
+    la $a0, text_buffer
     syscall
 
-    li $v0, 4                
-    la $a0, comma_space
-    syscall
-
-mds_skip:
-    addiu $s0, $s0, 1
-    j mds_loop
-
-mds_done:
     j exit
 
 
