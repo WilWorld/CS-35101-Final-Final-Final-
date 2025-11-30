@@ -195,9 +195,95 @@ ml_print_matches:
 ml_done_printing:
 	j exit
 
-match_dot_star:
+
+
+
+#TEST CASE 4
 match_dot:
+   
+    la $s0, text_buffer
+
+md_loop:
+    
+    lb $t0, 0($s0) #load char
+
+    
+    beqz $t0, md_done #null term=done
+
+    # Skip newline
+    li $t1, '\n'
+    beq $t0, $t1, md_skip
+
+    # Print 
+    move $a0, $t0
+    li $v0, 11
+    syscall
+
+   
+    li $v0, 4
+    la $a0, comma_space
+    syscall
+
+md_skip:
+    # Continue
+    addiu $s0, $s0, 1
+    j md_loop
+
+md_done:
+  
+    j exit
+
+
+#TEST CASE 2
 match_single_char:
+    la $s0, text_buffer      
+    la $s1, regex_buffer     
+
+msc_find_open:
+    lb $t0, 0($s1)
+    beqz $t0, msc_done
+    li $t1, '['
+    beq $t0, $t1, msc_after_open
+    addiu $s1, $s1, 1
+    j msc_find_open
+
+msc_after_open:
+    addiu $s1, $s1, 1        # s1 now at first char in class
+
+msc_text_loop:
+    lb $t2, 0($s0)           # t2 = current text char
+    beqz $t2, msc_done
+
+    move $t3, $s1            # t3 = pointer into char class
+
+msc_check_loop:
+    lb $t4, 0($t3)           # t4 = current class char
+    li $t5, ']'
+    beq $t4, $t5, msc_no_match
+    beq $t4, $t2, msc_print
+
+    addiu $t3, $t3, 1
+    j msc_check_loop
+
+msc_print:
+    move $a0, $t2
+    li $v0, 11
+    syscall
+
+    li $v0, 4
+    la $a0, comma_space
+    syscall
+
+msc_no_match:
+    addiu $s0, $s0, 1
+    j msc_text_loop
+
+msc_done:
+    j exit
+
+
+
+match_dot_star:
 match_negated_range:
 match_range_star_escape:
 match_range_star:
