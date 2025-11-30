@@ -134,17 +134,23 @@ flag_loop:
 	li $s1, '-'
 	beq $s1, $t1, range_found
 	
-	addiu, $t0, $t0, 1
+	addiu $t0, $t0, 1
 	lb $t1, 0($t0)
 	j flag_loop
 escape_found:
 	ori $t9, $t9, 0x1
+    addiu $t0, $t0, 1
+    lb    $t1, 0($t0)
 	j flag_loop
 star_found:
 	ori $t9, $t9, 0x2
+    addiu $t0, $t0, 1
+    lb    $t1, 0($t0)
 	j flag_loop
 range_found:
 	ori $t9, $t9, 0x4
+    addiu $t0, $t0, 1
+    lb    $t1, 0($t0)
 	j flag_loop
 
 match_literal:
@@ -248,16 +254,16 @@ msc_find_open:
     j msc_find_open
 
 msc_after_open:
-    addiu $s1, $s1, 1        # s1 now at first char in class
+    addiu $s1, $s1, 1        # s1 at first char in class
 
 msc_text_loop:
-    lb $t2, 0($s0)           # t2 = current text char
+    lb $t2, 0($s0)           # t2 current text char
     beqz $t2, msc_done
 
-    move $t3, $s1            # t3 = pointer into char class
+    move $t3, $s1            # t3 pointer into char class
 
 msc_check_loop:
-    lb $t4, 0($t3)           # t4 = current class char
+    lb $t4, 0($t3)           # t4=current class char
     li $t5, ']'
     beq $t4, $t5, msc_no_match
     beq $t4, $t2, msc_print
@@ -281,10 +287,120 @@ msc_no_match:
 msc_done:
     j exit
 
-
+#TEST CASE 5
 
 match_dot_star:
+    la $s0, text_buffer     
+
+mds_loop:
+    lb $t0, 0($s0)
+    beqz $t0, mds_done       # end 
+
+    li $t1, '\n'             # ignore newline 
+    beq $t0, $t1, mds_skip
+
+    move $a0, $t0            # print
+    li $v0, 11
+    syscall
+
+    li $v0, 4                
+    la $a0, comma_space
+    syscall
+
+mds_skip:
+    addiu $s0, $s0, 1
+    j mds_loop
+
+mds_done:
+    j exit
+
+
+#TEST CASE 7
+
 match_negated_range:
+    la $s0, text_buffer       
+    la $s1, regex_buffer      
+
+   
+    addiu $s1, $s1, 2         # skip [ ^
+
+    
+    lb $t1, 0($s1)            # range-start
+
+    # Skip to '-'
+    addiu $s1, $s1, 1
+    lb $t2, 0($s1)            # -
+
+    # Load end 
+    addiu $s1, $s1, 1
+    lb $t3, 0($s1)            # range-end
+
+nr_main_loop:
+    lb $t4, 0($s0)            
+    beqz $t4, nr_done         # check end
+
+    # skip newline
+    li $t5, '\n'
+    beq $t4, $t5, nr_next
+
+    # Check not in range
+    blt $t4, $t1, nr_collect_start
+    bgt $t4, $t3, nr_collect_start
+
+    # skip if in negated range
+    j nr_next
+
+nr_collect_start:
+    # start of continuous unit
+    move $t6, $s0            # start pointer
+
+nr_collect_loop:
+    lb $t4, 0($s0)
+    beqz $t4, nr_print_group
+
+    li $t5, '\n'
+    beq $t4, $t5, nr_print_group
+
+    # Check if not in range
+    blt $t4, $t1, nr_consume
+    bgt $t4, $t3, nr_consume
+
+    #  stop grouping if char is inside range
+    j nr_print_group
+
+nr_consume:
+    addiu $s0, $s0, 1
+    j nr_collect_loop
+
+# Print grouped substring
+nr_print_group:
+    
+nr_print_loop:
+    beq $t6, $s0, nr_group_done
+
+    lb $a0, 0($t6)
+    li $v0, 11
+    syscall
+
+    addiu $t6, $t6, 1
+    j nr_print_loop
+
+nr_group_done:
+    li $v0, 4
+    la $a0, comma_space
+    syscall
+
+    j nr_main_loop
+
+nr_next:
+    addiu $s0, $s0, 1
+    j nr_main_loop
+
+nr_done:
+    j exit
+
+
+
 match_range_star_escape:
 match_range_star:
 match_single_char_star:
