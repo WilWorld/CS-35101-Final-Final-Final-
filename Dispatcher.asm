@@ -623,7 +623,7 @@ mrse_backscan_done:
     beqz $s7, mrse_print
 
 
-# if @ exists, check if '@' is right before domain. If yes → expand thru email's username backwards.
+# if @ exists, check where in ipnut. If there is an @ expand thru email's username backwards.
 
     addiu $t7, $t8, -1
     blt  $t7, $t9, mrse_print
@@ -631,7 +631,6 @@ mrse_backscan_done:
     li   $t1, '@'
     bne  $t0, $t1, mrse_print
 
-    # Expand backwards into username
     addiu $t6, $t7, -1
 
 mrse_user_backscan:
