@@ -1,12 +1,6 @@
 # regex.asm
-# CS 35101 � Final Project
-# Wil N
-#
-# TODO
-#  - I/O handling
-#  - Program flow
-#  - Calling parser + matcher
-#  - Final output formatting
+# CS 35101 Final Project
+# Wil | Cayden | Zoe
 
 .data
 	regex_prompt:      .asciiz "Enter regular expression: "
@@ -71,9 +65,6 @@ print_match:
 	# Exit program exit
     li $v0, 10
     syscall
-    
-# USING FOR DEBUG STUFF
-debuggin:
 
 dispatcher:
 	la $t0, regex_buffer
@@ -170,7 +161,7 @@ ml_inner_loop:
 	lb   $t5, 0($t3)     # char from pattern
 
 	li $t8, '\n'
-	beq  $t5, '\n', ml_match_found     # end of pattern → matched all chars
+	beq  $t5, '\n', ml_match_found     # end of pattern = matched all chars
 	beq  $t4, $zero, ml_continue_outer   # buffer ended too early
 	bne  $t4, $t5, ml_continue_outer     # mismatch
 
@@ -200,9 +191,6 @@ ml_print_matches:
 	
 ml_done_printing:
 	j exit
-
-
-
 
 #TEST CASE 4
 match_dot:
@@ -288,7 +276,6 @@ msc_done:
     j exit
 
 #TEST CASE 5
-
 match_dot_star:
     li $v0, 4
     la $a0, text_buffer
@@ -298,7 +285,6 @@ match_dot_star:
 
 
 #TEST CASE 7
-
 match_negated_range:
     la $s0, text_buffer       
     la $s1, regex_buffer      
@@ -356,7 +342,6 @@ nr_consume:
 
 # Print grouped substring
 nr_print_group:
-    
 nr_print_loop:
     beq $t6, $s0, nr_group_done
 
@@ -381,11 +366,152 @@ nr_next:
 nr_done:
     j exit
 
+# TEST CASE 3!!!
+match_single_char_star:
+    la $s0, text_buffer		# s0 = text buffer
+    la $s1, regex_buffer	# s1 = regex buffer, skip to class
 
+mss_find_open:
+    lb $t0, 0($s1)
+    li $t1, '['
+    beq $t0, $t1, mss_after_open
+    beqz $t0, mss_done
+    addiu $s1, $s1, 1
+    j mss_find_open
+    
+mss_after_open:
+    addiu $s1, $s1, 1     # now at first char inside class
+
+mss_outer:
+    lb $t2, 0($s0)
+    beqz $t2, mss_done
+
+    move $t3, $s1          # t3 = class pointer
+
+mss_check_class:
+    lb $t4, 0($t3)
+    li $t5, ']'
+    beq $t4, $t5, mss_emit_empty   # no match = zero-length match allowed
+
+    beq $t4, $t2, mss_collect      # matched class char
+
+    addiu $t3, $t3, 1
+    j mss_check_class
+
+# collect a run of class chars
+mss_collect:
+    move $t6, $s0          # start of run
+
+mss_collect_loop:
+    lb $t7, 0($s0)
+    beqz $t7, mss_print_run
+
+    # test if t7 is in class
+    move $t3, $s1
+    
+mss_check2:
+    lb $t4, 0($t3)
+    li $t5, ']'
+    beq $t4, $t5, mss_print_run
+
+    beq $t4, $t7, mss_ok2
+
+    addiu $t3, $t3, 1
+    j mss_check2
+
+mss_ok2:
+    addiu $s0, $s0, 1
+    j mss_collect_loop
+
+# print collected substring
+mss_print_run:
+mss_pl:
+    beq $t6, $s0, mss_print_comma
+
+    lb $a0, 0($t6)
+    li $v0, 11
+    syscall
+
+    addiu $t6, $t6, 1
+    j mss_pl
+
+mss_print_comma:
+    li $v0, 4
+    la $a0, comma_space
+    syscall
+    j mss_outer
+
+# zero-length match = move on
+
+mss_emit_empty:
+    addiu $s0, $s0, 1
+    j mss_outer
+
+mss_done:
+    j exit
+
+# TEST CASE 6
+match_range_star:
+    la $s0, text_buffer
+    la $s1, regex_buffer
+
+    # skip '['
+    addiu $s1, $s1, 1
+    lb $t1, 0($s1)      # start char
+
+    # skip start char
+    addiu $s1, $s1, 1
+    # skip '-'
+    addiu $s1, $s1, 1
+    lb $t2, 0($s1)      # end char
+
+mrs_main:
+    lb $t3, 0($s0)
+    beqz $t3, mrs_done
+
+    # check in range
+    blt $t3, $t1, mrs_emit_empty
+    bgt $t3, $t2, mrs_emit_empty
+
+    move $t6, $s0	# collect matching run
+
+mrs_collect:
+    lb $t3, 0($s0)
+    beqz $t3, mrs_print
+
+    # test range again
+    blt $t3, $t1, mrs_print
+    bgt $t3, $t2, mrs_print
+
+    addiu $s0, $s0, 1
+    j mrs_collect
+
+mrs_print:
+mrs_pl:
+    beq $t6, $s0, mrs_comma
+
+    lb $a0, 0($t6)
+    li $v0, 11
+    syscall
+
+    addiu $t6, $t6, 1
+    j mrs_pl
+
+mrs_comma:
+    li $v0, 4
+    la $a0, comma_space
+    syscall
+    j mrs_main
+
+mrs_emit_empty:
+    addiu $s0, $s0, 1
+    j mrs_main
+
+mrs_done:
+    j exit
 
 match_range_star_escape:
-match_range_star:
-match_single_char_star:
+
 exit:
 	li $v0, 10
 	syscall
