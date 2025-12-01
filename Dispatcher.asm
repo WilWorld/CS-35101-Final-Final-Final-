@@ -510,7 +510,164 @@ mrs_emit_empty:
 mrs_done:
     j exit
 
+#Test case 8 and 9
+
 match_range_star_escape:
+    
+    la   $s0, text_buffer
+    la   $s1, regex_buffer
+
+    # Read range
+    addiu $s1, $s1, 1
+    lb   $s5, 0($s1)        # range start
+    addiu $s1, $s1, 2
+    lb   $s6, 0($s1)        # range end
+
+    # s7 = flag @
+    li   $s7, 0                
+    la   $t0, regex_buffer
+
+# scan for @
+mrse_scan_at:
+    lb   $t1, 0($t0)
+    beqz $t1, mrse_scan_done     # end of regex
+    li   $t2, '@'
+    beq  $t1, $t2, mrse_set_at   # mark @
+    addiu $t0, $t0, 1
+    j    mrse_scan_at
+
+mrse_set_at:
+    li   $s7, 1                  # mark if @ exists
+
+mrse_scan_done:
+    # look for escaped suffix like "\.edu"
+    la   $s2, regex_buffer
+
+# find backslash
+mrse_find_escape:
+    lb   $t0, 0($s2)
+    beqz $t0, mrse_exit          # no suffix then end
+    li   $t1, '\\'
+    beq  $t0, $t1, mrse_escape_found
+    addiu $s2, $s2, 1
+    j    mrse_find_escape
+
+mrse_escape_found:
+    addiu $s2, $s2, 1          
+
+#go through text to find suffix match
+mrse_main:
+    lb   $t2, 0($s0)
+    beqz $t2, mrse_exit          
+
+    move $t3, $s2                # t3 = pointer into suffix
+    move $t4, $s0                # t4 = pointer into text
+
+# Compare suffix to text 
+
+mrse_cmp:
+    lb   $t5, 0($t3)
+    li   $t6, '\n'
+    beq  $t5, $t6, mrse_suffix_match   # reached end of suffix
+
+    lb   $t7, 0($t4)
+    beqz $t7, mrse_nomatch             # ran out of text
+    bne  $t7, $t5, mrse_nomatch        # no match
+
+    addiu $t3, $t3, 1
+    addiu $t4, $t4, 1
+    j    mrse_cmp
+
+mrse_nomatch:
+    addiu $s0, $s0, 1         # move forward 
+    j    mrse_main            # try again
+
+# find suffix length
+mrse_suffix_match:
+    move $s3, $s0             # s3 = where suffix starts
+    move $t3, $s2
+
+mrse_suffix_len:
+    lb   $t5, 0($t3)
+    li   $t6, '\n'
+    beq  $t5, $t6, mrse_suffix_len_done
+    addiu $s3, $s3, 1
+    addiu $t3, $t3, 1
+    j    mrse_suffix_len
+
+mrse_suffix_len_done:
+    move $s4, $s3             # s4 is end of match
+
+    # walk backwards to find the domain section
+   
+    addiu $t8, $s0, -1
+    la   $t9, text_buffer
+
+mrse_backscan:
+    blt  $t8, $t9, mrse_backscan_done
+    lb   $t0, 0($t8)
+
+    # stop if char is outside range
+    blt  $t0, $s5, mrse_backscan_done
+    bgt  $t0, $s6, mrse_backscan_done
+
+    addiu $t8, $t8, -1
+    j    mrse_backscan
+
+mrse_backscan_done:
+    addiu $t8, $t8, 1     # first letter of domain
+
+
+# If no @ in regex,  only output domain part
+
+    beqz $s7, mrse_print
+
+
+# if @ exists, check if '@' is right before domain. If yes → expand thru email's username backwards.
+
+    addiu $t7, $t8, -1
+    blt  $t7, $t9, mrse_print
+    lb   $t0, 0($t7)
+    li   $t1, '@'
+    bne  $t0, $t1, mrse_print
+
+    # Expand backwards into username
+    addiu $t6, $t7, -1
+
+mrse_user_backscan:
+    blt  $t6, $t9, mrse_user_done
+    lb   $t0, 0($t6)
+
+    blt  $t0, $s5, mrse_user_done
+    bgt  $t0, $s6, mrse_user_done
+
+    addiu $t6, $t6, -1
+    j    mrse_user_backscan
+
+mrse_user_done:
+    addiu $t6, $t6, 1
+    move  $t8, $t6       #  start of full email
+
+# Print 
+
+mrse_print:
+    beq  $t8, $s4, mrse_print_comma
+    lb   $a0, 0($t8)
+    li   $v0, 11
+    syscall
+    addiu $t8, $t8, 1
+    j    mrse_print
+
+mrse_print_comma:
+    li   $v0, 4
+    la   $a0, comma_space
+    syscall
+    move $s0, $s4
+    j    mrse_main
+
+mrse_exit:
+    j    exit
+
 
 exit:
 	li $v0, 10
