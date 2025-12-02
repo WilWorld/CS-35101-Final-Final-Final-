@@ -1,6 +1,6 @@
 # regex.asm
 # CS 35101 Final Project
-# Wil | Cayden | Zoe
+# Cayden | Wil | Zoe
 
 .data
 	regex_prompt:      .asciiz "Enter regular expression: "
